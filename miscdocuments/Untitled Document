@@ -1,0 +1,3 @@
+need to roxygenuize after fi examples
+R CMD check in rstudio deletes the .check if have problem i.e. pdf documentation warnings
+RCMD check makes manual packagename-manual.pdf

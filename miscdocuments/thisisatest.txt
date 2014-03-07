@@ -1,0 +1,182 @@
+PROC IMPORT DATAFILE='filename' DBMS='XLSX' REPLACE OUT=data-set;
+GETNAMES=YES;
+MIXED=YES;
+RUN;
+
+PROC IMPORT DATAFILE='filename' OUT=data-set;
+GETNAMES=YES;
+DELIMITER=",";
+RUN;
+
+PROC TRANSPOSE DATA=baseball out=filpped;
+BY Team Player;
+ID Type;
+VAR Entry;
+RUN;
+
+we only want one observation per BY
+The different values of ID (Type) be new variable names
+VAR is the variable to be transposed
+
+PROC TRANSPOSE DATA=in out=out prefix=faminc;
+BY famid;
+ID year;
+VAR faminc;
+RUN;
+
+DATA new-data;
+SET old-data;
+DROP age;
+RUN;
+
+data new-data;
+SET old-data;
+KEEP gender weight;
+run;
+
+PROC PRINT data=data;
+VAR gender age;
+RUN;
+
+PROC univariate data=data;
+run;
+
+PROC means data=data;
+RUN;
+
+PROC summary data=data print;
+var weight;
+by gender;
+run;
+
+PROC corr data=data;
+var age weight;
+run;
+
+proc glm data=data;
+class gender;
+model weight=age gender;
+output ...
+run;
+
+proc reg data=a1
+model weight=age;
+run;
+
+PROC SQL;
+SELECT STATE, SALES, SALES/SUM(SALES_ AS PCTSALES FORMAT=PERCENT7.2
+FROM data;
+Quit;
+
+PROC FREQ data=data
+TABLES var1 var2 /missing;
+RUN;
+
+DATA newdata;
+SET olddata;
+where not missing(study_number);
+if race="asian" then Asian="yes"; else Asian="No";
+run;
+
+PROC SQL;
+CREATE TABLE newdata AS
+SELECT *, CASE race
+WHEN 'ASIAN' THEN 'yes'
+ELSE 'No'
+END AS Asian
+FROM olddata
+QUIT;
+
+
+
+proc sql noprint;
+select count(*) into :nobs from test;
+quit;
+%put &nobs;
+
+
+DATA newdata;
+INPUT Pres $ Party $ Number;
+DATALINES;
+ADAMS F 2
+GRANT R 18
+KENNEDY D 35;
+;
+RUN;
+
+DATA newdata;
+INFILE 'c:\...\data.dat' LRECL=200000;
+INPUT President $ Party $ Number;
+RUN;
+
+DATA newdata;
+INFILE '...';
+INPUT President $ Party $ Number;
+RUN;
+
+DATA newdata;
+INFILE '...'
+INPUT President $ 1-10 Age 11-13 Height 14-18;
+RUN;
+
+DATA newdata;
+INFILE '...';
+INPUT Name $10. Age 3. Height 5.1 Birthdate MMDDYY.;
+RUN;
+
+DATA newdata;
+INFILE '...';
+INPUT @'School:' School @'Time' RaceTime :STIMER8.; *: if differnet lengths
+RUN;
+
+DATA highlow;
+INFILE 'c:\MyRawData\Temperature.dat';
+INPUT City $ State $
+/ NormalHigh NormalLow
+#3 RecordHigh RecordLow;
+RUN;
+
+DATA rainfall;
+INFILE 'c:\MyRawData\Precipitation.dat';
+INPUT City $ State $ NormalRain MeanDaysRain @@;
+RUN;
+
+
+DATA newdata;
+INFILE '...' FIRSTOBS=3 OBS=10 MISSOVER; *missover tells sas to not go to next line
+if missing data
+INPUT type $ @;
+if type='surface' THEN DELETE;
+INPUT Name $ 9-38 AMTraffic PMTraffic;
+RUN;
+
+DATA homeaddress;
+INFILE 'c:\MyRawData\Address.dat' TRUNCOVER;
+INPUT Name $ 1-15 Number 16-19 Street $ 22-37;
+RUN;
+
+DATA reading;
+INFILE '...' DLM=','DSD; *DSD will make ,, be a missing 
+INPUT NAME $:30 Week2 Week3 Week4 Week5; *$:30 means up to 30 char
+RUN;
+
+PROC IMPORT
+DATAFILE='...' OUT=newdata REPLACE;
+RUN'
+
+PROC IMPORT DATAFILE ='...' DBMS=XLSX OUT=sales;
+SHEET='sheet-name'
+GETNAMES=YES;
+MIXED=YES;
+RUN;
+
+PROC CONTENTS DATA=funnies;
+
+DATA gamestats;
+INFILE 'c:\MyRawData\Games.dat';
+INPUT Month 1 Day 3-4 Team $ 6-25 Hits 27-28 Runs 30-31;
+RETAIN MaxRuns;
+MaxRuns = MAX(MaxRuns, Runs);
+RunsToDate + Runs;
+RUN;
+

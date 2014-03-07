@@ -1,0 +1,84 @@
+\documentclass[pdf]{beamer}
+\usetheme{Madrid}
+\mode<presentation>{}
+\usepackage{graphicx}
+\theoremstyle{definition}
+\newtheorem{defin}{Definition}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage[]{algorithm2e}
+\usepackage{bm}
+\title[Princess Margaret Cancer Center]{ORMPT Internship Recruitment}
+\subtitle{Princess Margaret Cancer Center}
+\author{Ryan Del Bel}
+\date{January 30, 2014}
+\institute[uw]{University of Waterloo}
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{Training}
+\begin{itemize}
+\item Wei Xu has a Ph.D in biostatitics. He is extremely insightful and helpful. You will have a one hour meeting every week to be mentored
+\item Geoffrey Liu knows both the clinical and statistical side to his research. He can greatly smooth your transition.
+\item COMBIEL training program exposes you to many aspects of clinical research including database design, data collection, study design, clinical motivation, etc.
+\item Can sit in courses at UofT to continue learning
+\item Many opportunities to give talks. I gave 4.5 at PM and 1 at UofT
+\end{itemize}
+
+
+\end{frame}
+
+\begin{frame}{Studies}
+You will have the opportunity to closely collaborate, consult, and educate many clinicians while working on their clinical and genetic studies
+
+
+\begin{algorithm}[H]
+ \While{Clinicians are not satisfied}{
+  Talk with clinicans to see what they want \\
+ Figure out how to answer it with statistics \\
+ Potentially help them with study design \\
+ clean their data \\
+ analyze their data \\
+ write statistical report \\
+ discuss results with clinicans \\
+ }
+ Prepare statistical methods section of manuscript\\
+ Review their manuscript
+ \caption{Basic Study Procedure}
+\end{algorithm}
+
+
+\end{frame}
+
+\begin{frame}{Applied Research}
+A substantial amount of my time was spent doing applied research with Wei. Previous interns had some research component but not as large in scope. Wei is interested in many things. If you are interested in doing research you can ask him about it in the interview
+\begin{itemize}
+\item We extended survival trees to make splits by maximizing the difference in response to treatment in the two children
+\item These methods can help enable personalized medicine
+\item They can be extended to other cases where a likelihood can be defined
+\item Paper is currently under review at Biostatitics
+
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{Freedom}
+Wei let me work on my own projects because they were reasonable
+\begin{itemize}
+ 
+\item I noticed that the statistical report writing process was unbearably long, boring, prone to error, and not reproducible
+\item I found a set of tools that could in theory automatically generate a report directly from R output
+\item An R package was still needed to actually produce the complicated, and completely formatted R output we needed in an easy way
+\item I told Wei about this and he encouraged me to pursue
+\item Now my package reportRx is used by many people in the department
+\item Package GENmatic is currently in development to automate common quality control, analysis, and reporting for genetic studies
+
+\end{itemize}
+\end{frame}
+
+
+\end{document}

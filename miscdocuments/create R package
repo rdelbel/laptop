@@ -1,0 +1,18 @@
+Install R Package Devtools
+Install R Package roxygen2
+Install git
+Install Rstudio
+Create github account
+Create public repository with name of package
+Rstudio->Project->Create Project-> Type=Project, Directory name = package name, pick subdirectory, check create a git respository for this project
+Rstudio->Project->Project Options->Build Tools->Generate documentation with Roxygen->check->configure->Check all
+Document functions inline with roxygen2
+use @import pkg1 pkg2 ... pkgn 1 time 
+in DECRIPTION by hand write
+Imports: pkg1, pkg2, ... ,pkgn
+WOrkspace pane->build -> build and reload
+create a readme.md file in the package folder
+WOrkspace pane->build -> git -> check DESCRIPTION, NAMESPACE, R, man, readme.md->commit-> Commit message= first commit->'commit'
+git remote add origin https://github.com/rdelbel/GENmatic.git
+git push -u origin master
+Later can push from 

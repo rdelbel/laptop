@@ -1,0 +1,15 @@
+base
+class
+e1071
+Formula
+ggplot2
+gplots
+Hmisc
+knitr
+lattice
+MASS
+multicore
+plyr
+reshape
+ROCR
+survival

@@ -1,0 +1,8 @@
+stats
+GLM
+LR test statistic is called the deviance (D)
+D=2*(l(unconstrained)-l(constrained) ~ chisq_(q-p)
+saturated mle for binary is pi_i=y_i/m_i
+Regression models impose constrains on the estimate of pi_i through x_i^tbeta
+D~chisq_(n-p) is residual deviance 
+DeltaDeviance test

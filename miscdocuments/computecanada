@@ -1,0 +1,21 @@
+port is always 22 for ssh
+man = manual
+scp to copy files from terminal
+filezilla to copy files from desktop
+login
+ssh rdelbel@login.scinet.utoronto.ca
+
+this is entrance, dont do computation
+loginto development
+can see how busy gpc01, ... , gcp04 are
+command to log into least busy one
+ssh gpc01...gpc04
+module load gcc R/3.0.1 ... (g++) plink
+R
+from here can install.packaes(...)
+enter the queue
+qsub ....sh
+man qsub to see manual 
+can have bach file do everything
+maybe use keyfiles to save password
+look into newparallel

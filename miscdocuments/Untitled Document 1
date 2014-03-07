@@ -1,0 +1,1 @@
+A tree-based method for personalized medicine is developed. Using survival data, binary trees are created by maximizing the difference in response to treatment between groups of patients. Using high dimensional genetic, clinical, and demographic information These trees can be used as interpretable tools to classify the best treatment of patients.

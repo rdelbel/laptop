@@ -1,0 +1,38 @@
+bmc bioinformatics
+
+normally feature screening. lots of 2 sample t tests. (mean difference). LInear kernel does least amount of extra things. If that somehow increases power then we have a story to tell. 
+
+Start with the linear.
+
+Screen out noise observations. Dont want to throw away to many.
+Remove 1%, 5%, 10% 
+
+a few 'classical cases' to show. 
+Simulation from 2 gaussian (relatively high dimensional, only signal in a few directions). 
+1) Simulation 5 variables (all gaussian), group 1 y=f() group 2 y=g(). 
+Then generate 200 random guys for the 2 groups. Can control difficulty of the problem 
+
+
+First thing to do.
+
+2 dimensional gaussian. can control difficulty by seperating the 2 gaussians. At least two paramaters. difference of the 2 means, and the number of noise dimensions. Simulation from spherical gaussian or use correlation.
+
+If the 2 gaussian covariance are th esame then know the optimal decision is a straight line. can simulate to have different covariace matrix. In this case lienar is bad and gaussian could do better.
+
+Applied contribution. Will this be attractive who constantly screen with features. 
+
+Do some genetic. SVM is best when its applied to homogenous data
+
+Since this is preprossing step. 
+IF we know the answer then we can have the ranking. 
+Focus on identifying factors for higher power.
+One thing we shoudl look at is p-value.
+See if 
+
+Can compute ROC based under the ranked list and identifier of if they are true or not.
+
+First do linear support vector machine. DO the whole thing just for linear. 
+
+Simulation
+Diagonal, autogressive, equivariant.
+

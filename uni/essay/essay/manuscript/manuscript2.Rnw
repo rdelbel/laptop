@@ -1,0 +1,266 @@
+\documentclass{article}
+\usepackage{multirow}
+\setlength\parindent{0pt}
+\usepackage{geometry}
+\usepackage{longtable}
+\usepackage{float}
+
+%This is word 'normal' margins
+\geometry{left=1.25in,right=1in,top=1.25in,bottom=1.25in}
+%word 'moderate' margins
+%\geometry{left=.75in,right=.75in,top=1in,bottom=1in}
+%word 'narrow' margins
+%\geometry{left=.5in,right=.5in,top=.5in,bottom=.5in}
+
+
+
+%Change title here
+\title{Preprocessing with SVM}
+%Change Author here
+\author{Ryan Del Bel}
+
+\begin{document}
+\maketitle
+
+
+<<,include=FALSE>>=
+
+# contamination 
+# same x is predicting different 1
+# same genetic profile 
+# hidden predictor for y we are not measuring 
+
+
+
+require(MASS)
+require(ggplot2)
+require(e1071)
+require(reshape)
+require(multicore)
+require(Hmisc)
+require(ROCR)
+
+set.seed(123456789)
+auc<-function (y, phat)
+{
+  # the two arguments are:
+  # y = list of actual binary labels, 0, 1;
+  # phat = list of ranking (or predicted probability) that an item is a 1 rather than a 0
+  y <- as.numeric(y)
+  phat <- as.numeric(phat)
+  prediction(phat, y)->obj
+  performance(obj,'auc')->junk
+  as.numeric(attr(junk,'y.values'))
+}
+
+uncorrelated<-function(totalfeat=200,realfeat=10,nobs=500,beta=c(1.1,2),flip=0,...){
+   truecovs=data.frame(matrix(rnorm(nobs*realfeat),ncol=realfeat))
+  if(length(beta)==2) betas=seq(beta[1],beta[2],length.out=realfeat)
+  z=apply(truecovs,1,function(x){
+    z=rep(0,length(x))
+    for (i in 1:length(x)) z[i]=x[i]*ifelse(length(beta)==1,log(beta),log(betas[i]))
+    sum(z)
+  })
+  pr=1/(1+exp(-z))
+  Y=rbinom(nobs,1,pr)
+  noise=mvrnorm(nobs,rnorm(totalfeat-realfeat),diag(totalfeat-realfeat))
+  data=data.frame(Y,truecovs,noise)
+  colnames(data)[-1]=sapply(1:(ncol(data)-1),function(x) paste0("X",x))
+  if(flip){
+    flips=sample(1:nobs,flip)
+    data$Y[flips]=1-data$Y[flips]
+    flipped<<-flips
+  }else{
+  flipped<<-c()
+  }
+  return(data)
+}
+
+getsupportvectors<-function(svm.model,Y,svlimit=500,...){
+  sv=svm.model$index[which(abs(svm.model$coefs)==1)]
+  f=svm.model$decision.values[sv]
+  true=ifelse(Y[sv]==1,1,-1)
+  
+  distance=f*true*-1
+  index=order(distance,decreasing=T)
+#   coef=svm.model$coefs
+#   sc=coef[index]
+#   sf=f[index]
+#   st=true[index]
+#   sd=distance[index]
+ sv=sv[index]  
+ sv[1:min(length(sv),svlimit)]
+}
+fitsvm<-function(SV,...){
+  points=uncorrelated(...)
+  #cname=colnames(points)
+  #points$y=factor(points$y)
+  #plot(ggplot(points,aes(x1,x2,color=factor(y)))+geom_point())
+  #svm.model=tune.svm(y~.,data=points,type="C-classification",kernel="linear")
+  svm.model=svm(Y~.,data=points,type="C-classification",kernel="linear",cost=1)
+  if(SV){
+  sv=getsupportvectors(svm.model,points$Y,...)
+  }else{
+    sv=flipped
+  }
+  print(flipped%in%sv)
+  results=cbind(t(sapply(colnames(points)[-1],function(var){
+    f=as.formula(paste0(var,"~Y"))
+    c(t.test(f,data=points)$p.value,
+      t.test(f,data=points[!1:nrow(points)%in%sv,])$p.value)
+  })))
+  #rownames(results)=1:length(cname[-1])
+  colnames(results)=c("Normal","SVM")
+  results=melt(results)
+  results$X1=as.numeric(substring(results$X1,2))
+  pvalues=as.matrix(aggregate(results$value, by=list(results$X2), FUN=mean)[2])
+  results$nullp=pvalues[1]
+  results$nullp[results$X2=="SVM"]=pvalues[2]
+  results$sv=length(sv) 
+  colnames(results)=c("feature","type","pvalue","nullp","sv")
+  results=results[order(results$type,results$pvalue),]
+  results$ConSV=sum(flipped%in%sv)
+  return(results)
+}
+simresult<-function(df,topn=10,realfeat=10,flip,...){
+  df$y=ifelse(df$feature<=realfeat,1,0)
+  df$nltp=-log10(df$pvalue)
+  dfsvm=subset(df,df$type=="SVM")
+  dfnormal=subset(df,df$type=="Normal")
+  aucresult=c(auc(dfsvm$y,dfsvm$nltp),auc(dfnormal$y,dfnormal$nltp))
+  fweresult=c(sum(dfsvm$feature[1:topn]<=realfeat),sum(dfnormal$feature[1:topn]<=realfeat))
+  fweresult20=c(sum(dfsvm$feature[1:20]<=realfeat),sum(dfnormal$feature[1:20]<=realfeat))
+  c(aucresult,fweresult,fweresult20,df$nullp[nrow(df)],df$nullp[1],df$sv[1],flip,df$ConSV[1])
+}
+
+simulatesvm<-function(n,...){
+  result=mclapply(1:n,function(x) fitsvm(...),mc.cores=8)
+  #print(result)
+  result=matrix(unlist(mclapply(result,function(x)simresult(x,...),mc.cores=8)),ncol=11,byrow=T)
+  apply(result,2,mean)
+}
+
+
+
+sim<-function(n,betas,svlimit=500,flip=0,SV=T){
+  OR=sapply(betas,function(x)simulatesvm(n=n,beta=x,svlimit=svlimit,flip=flip,SV=SV))
+  OR=data.frame(t(OR))
+  colnames(OR)=c("SVM","Normal","SVM","Normal","SVM","Normal","SVM","Normal","\\#SV","\\#Contam","ConSV")
+  OR=round(OR,3)
+  #print(betas)
+  if(class(betas)=="list") rownames(OR)=sapply(betas,function(x) paste0(x[1],"-",x[2])) else rownames(OR)= betas
+  return(OR)
+}
+
+multiplesim=function(n,betas,svlimit=500,flip=0,SV=T){
+ if(length(svlimit)>1){
+    result=lapply(svlimit,function(x) sim(n,betas,x,flip))
+  }else if(length(flip)>1){
+        result=lapply(flip,function(x) sim(n,betas,svlimit,x))
+
+  }
+ return(result)
+}
+@
+
+multiplesim(8,seq(1,2,.25),500,c(20,30,40,50))
+multiplesim(8,list(c(1.1,1.5),c(1.1,2),c(1.5,2),c(2,2.5)),500,c(20,30))
+<<,include=FALSE,cache=F>>=
+SV10=sim(8,seq(1.25,1.75,.25),SV=T,flip=10)
+SV50=sim(8,seq(1.25,1.7,.25),SV=T,flip=50)
+
+SV10010=sim(8,seq(1.25,1.75,.25),SV=T,flip=10,svlimit=10)
+SV5010=sim(8,seq(1.25,1.75,.25),SV=T,flip=50,svlimit=10)
+
+SV1050=sim(8,seq(1.25,1.75,.25),SV=T,flip=50,svlimit=10)
+SV5050=sim(8,seq(1.25,1.75,.25),SV=T,flip=50,svlimit=50)
+
+SV10R=sim(8,list(c(1.1,1.5),c(1.1,2)),SV=T,flip=10)
+SV50R=sim(8,list(c(1.1,1.5),c(1.1,2)),SV=T,flip=50)
+
+SV1010R=sim(8,list(c(1.1,1.5),c(1.1,2)),SV=T,flip=10,svlimit=10)
+SV5010R=sim(8,list(c(1.1,1.5),c(1.1,2)),SV=T,flip=50,svlimit=10)
+
+SV1050R=sim(8,list(c(1.1,1.5),c(1.1,2)),SV=T,flip=10,svlimit=50)
+SV5050R=sim(8,list(c(1.1,1.5),c(1.1,2)),SV=T,flip=50,svlimit=50)
+
+N
+
+
+OR4=sim(40,seq(1.25,2,.25),SV=F,contam=)
+OR5=sim(40,seq(1.25,2,.25),SV=F)
+OR2=sim(8,list(c(1.1,1.5),c(1.1,2),c(1.5,2),c(2,2.5)))
+OR3=sim(8,seq(1,2,.25),flip=50)
+OR4=sim(8,list(c(1.1,1.5),c(1.1,2),c(1.5,2),c(2,2.5)),flip=50)
+wOR5=sim(8,seq(1,2,.25),svlimit=10)
+OR6=sim(8,list(c(1.1,1.5),c(1.1,2),c(1.5,2),c(2,2.5)),svlimit=10)
+OR7=sim(8,seq(1,2,.25),svlimit=10,flip=50)
+OR8=sim(8,list(c(1.1,1.5),c(1.1,2),c(1.5,2),c(2,2.5)),svlimit=10,flip=50)
+@
+
+
+<<,include=F>>=
+OR=sim(8,seq(1,2,.25),flip=5)
+OR2=sim(8,list(c(1.1,1.5),c(1.1,2),c(1.5,2),c(2,2.5)),flip=1)
+@
+
+
+<<,include=FALSE,cache=TRUE>>=
+# OR3=sim(100,seq(1,2,.1),T,5)
+# OR4=sim(100,list(c(1.1,1.5),c(1.1,2),c(1.5,2)),F,5)
+# OR5=sim(100,seq(1,2,.1),T,10)
+# OR6=sim(100,list(c(1.1,1.5),c(1.1,2),c(1.5,2)),F,10)
+# OR7=sim(100,seq(1,1.6,.1),T,25)
+# OR8=sim(100,list(c(1.1,1.5),c(1.1,2)),F,25)
+# OR9=sim(100,seq(1,1.4,.1),T,50)
+# OR10=sim(100,list(c(1.1,1.5)),F,50)
+# 
+# tbl=rbind(OR3,OR4,OR5,OR6,OR7,OR8,OR9,OR10)
+# tbl$OR=rownames(tbl)
+# tbl$OR[15:43]=sapply(rownames(tbl)[15:43],function(x)substring(x,1,nchar(x)-1))
+# tbl$OR[37]="1.1-1."
+# colnames(tbl)=c("OR","SVM","Normal","SVM","Normal","SVM","Normal","\\#SV")
+
+@
+
+
+\section{Simulations with uncorrelated features}
+
+We first consider the simple case with uncorrelated features. We let n=500, simulate 10 truly associated features and 190 noisy features. The effect of the features on the outcome was achieved by setting the odds ratio in the underlying logistic model. For simplicity and efficiency when using the linear SVM we simply set the tuning parameter $C$ to be one. Since the number of support vectors tends to be very large we only remove the support vectors that have maximal weights (i.e. with absolute value 1). For each feature we obtain the p-value from the t-test on the full sample and the sample with the support vectors with maximal weight removed. We then calculate the AUC, number of truly associated features that are in the top 10, 20 smallest p-values, and the number of support vectors removed. We replicate these simulations 100 times and report the average of each of the above statistics. \\
+
+We first simulate data with the 10 associated features having the same OR.
+
+
+<<,echo=FALSE,results='asis'>>=
+latex(OR,file="",cgroup = c("AUC", "TOP10","TOP20","nullp",""), n.cgroup = c(2,2,2,2,1))
+latex(OR2,file="",cgroup = c("AUC", "TOP10","TOP20","nullp",""), n.cgroup = c(2,2,2,2,1))
+latex(OR3,file="",cgroup = c("AUC", "TOP10","TOP20","nullp",""), n.cgroup = c(2,2,2,2,1))
+latex(OR4,f4ile="",cgroup = c("AUC", "TOP10","TOP20","nullp",""), n.cgroup = c(2,2,2,2,1))
+latex(OR5,file="",cgroup = c("AUC", "TOP10","TOP20","nullp",""), n.cgroup = c(2,2,2,2,1))
+latex(OR6,file="",cgroup = c("AUC", "TOP10","TOP20","nullp",""), n.cgroup = c(2,2,2,2,1))
+
+@
+
+
+Next we simulate 10 associated features with OR evenly spaced between a specified minimum and maximum OR.
+
+<<,echo=FALSE,results='asis'>>=
+#latex(OR2,file="",cgroup = c("AUC", "TOP10","TOP20",""), n.cgroup = c(2, 2,2,1),here=T)
+@
+
+In both cases the results are slightly worse when using SVM as a preprocessing step. We notice that even when only removing the support vectors with maximal weight, we still usually remove a very large number of support vectors. We will now limit the number of support vectors we remove to $k$. If there are more than $k$ support vectors with maximal weight we then randomly remove $k/2$ support vectors with weight 1 and $k/2$ support vectors with weight -1.
+
+<<,echo=FALSE,results='asis'>>=
+# tbl=tbl[-37,c(8,1:7)]
+# colnames(tbl)=c("OR","SVM","Normal","SVM","Normal","SVM","Normal","\\#SV")
+# 
+# 
+# latex(tbl,file="",cgroup = c("","AUC", "TOP10","TOP20",""),
+#       rgroup=c("1\\%","2\\%","5\\%","10\\%"), n.cgroup = c(1,2, 2,2,1),
+#       n.rgroup=c(14,14,8,6),here=T,rowlabel="",rowname=NULL)
+
+@
+
+Even when limiting the number of support vectors we remove, the normal approach still performs better.
+
+\end{document}

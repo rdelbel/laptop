@@ -1,0 +1,17 @@
+{
+    "contents" : "require(survival)\nrequire(gap)\nsetwd(\"~/pm/packages/GENmatic/testing/cleaned data\")\nESO=read.csv(\"clinical.csv\")\nsystem(\"plink --noweb --file 515samples_clean --make-bed --out data\")\nsystem(\"plink --noweb --bfile data --thin 0.0001 --make-bed --out thinned\")\nhead(ESO)\nGENfit(ESO[,c(\"nlab\",\"nlab\")],ESO[,c(\"SvRfs\",\"Rfs\")],ESO[c(\"Larynx\",\"STAD1\",\"PC1\",\"PC2\",\"PC3\")],kind=\"dominant\",ifile=\"data\",type=\"coxph\",summarize=T,n=100)\nsystem(\"plink --noweb --bfile thinned --covar covar.txt --pheno pheno.txt --R Rplink.R --out GENmatic\")\nsystem(\"plink --noweb --bfile thinned --covar covar.txt --pheno pheno.txt --R coxph.R --out GENmatic\")\nsystem(\"plink --noweb --bfile data --recodeA\")\n\nsetwd(\"~/pm/packages/GENmatic/testing/cleaned data\")\nESO=read.csv(\"clinical.csv\")\ngettopsnps<-function(df,time,status,covs){\n  top=read.csv('GENmatictopsnps.csv')\n  write.table(top$SNP,file=\"mysnps.txt\",quote=F,row.names=F,col.names=F)\n  system(\"plink --noweb --bfile data --extract mysnps.txt --recodeA\")\n  plinkraw=read.table('plink.raw',stringsAsFactors=F,header=T)\n  plinkraw=plinkraw[,c(-2,-3,-4,-5,-6)]\n  outdf=merge(df,plinkraw,by.x=colnames(df)[1],by.y=colnames(plinkraw)[1])\n  odf2=outdf[,colnames(plinkraw)[-1]]\n  odf2[is.na(odf2)]=0\n  odf2[odf2!=0]=1\n  list(as.matrix(outdf[,c(time,status,covs)]),as.matrix(odf2))\n}\n\na=gettopsnps(ESO,\"SvRfs\",\"Rfs\",c(\"Larynx\",\"STAD1\",\"PC1\",\"PC2\",\"PC3\"))\n\nhead(a[[1]])\nhead(a[[2]])\nhead(a[[1]])\nclass(a[[1]])\napply(ifelse(a[[2]]==0,0,1),2,function(x)length(which(is.na(x))))\na[[2]][is.na(a[[2]])]=0\na[[2]][a[[2]]!=0]=1\n",
+    "created" : 1393803371966.000,
+    "dirty" : true,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "4199769631",
+    "id" : "A479FBEC",
+    "lastKnownWriteTime" : 2318902374441558016,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "tempName" : "Untitled2"
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}

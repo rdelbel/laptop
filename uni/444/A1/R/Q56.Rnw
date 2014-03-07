@@ -1,0 +1,68 @@
+\documentclass{article}
+\usepackage{geometry}
+\geometry{left=1.25in,right=1in,top=1.25in,bottom=1.25in}
+\setlength\parindent{0pt}
+\begin{document}
+\section*{Question 5}
+Since we have a very small number of variables we will do 'classical' model selection by starting with the saturated model and seeing if we can remove the interaction term.
+
+<<,include=F>>=
+require(car)
+require(MASS)
+require(ggplot2)
+data=read.table('overdue.txt',head=T)
+data$TYPE=c(rep("RESIDENTIAL",48),rep("COMMERCIAL",48))
+attach(data)
+m0=lm(LATE~BILL)
+m1=lm(LATE~BILL+TYPE)
+
+@
+
+<<>>=
+m2=lm(LATE~BILL*TYPE)
+summary(m2)$coef
+@
+
+We see that we need to include all covariates in our model by the small values of the wald tests. Next we will do model checking to make sure we have a good fit. First we will check for patterns in our residuals.
+
+<<,fig.height=3,fig.width=3,fig.show='hold'>>=
+
+plot(BILL,m2$resid)
+ggplot(data,aes(x=TYPE,y=m2$resid))+geom_boxplot()
+@
+
+
+With no obvious patterns in the resudials, we will now check for outliers
+
+<<,fig.height=3,fig.width=3,fig.show='hold'>>=
+plot(fitted(m2),studres(m2))
+qqnorm(studres(m2))
+qqline(studres(m2))
+@
+Although a couple of points may arguably be outliers, we will keep them in the model as they are not too bad and the outliers are unlikely to change the estimates of the model. Next we will check for poitns of influence
+
+
+<<,fig.height=3,fig.width=3,fig.show='hold'>>=
+sort(lm.influence(m2)$hat)[1:10]
+@
+We see that there are no influencial points. Now that we are satisfied with our model we can interpret it. Recall the parameters
+<<>>=
+coef(m2)
+@
+Which we can interpret as follows.
+For a commercial building with a small bill, we will have to wait about 100 days. For a residental building with a small bill we will have to wait about 0 days. As the bill increases by one, we wil expect to wait .2 less days for a commercial building, and .15 more days for a residental building. We can plot these regression lines as follows.
+
+<<,fig.height=3,fig.show='hold'>>=
+ggplot(data,aes(x=BILL,y=LATE,shape=TYPE))+geom_point()+ stat_smooth(method=lm)
+@
+
+Using this plot we can say that the marketing department should make different claims for commercial and residential clients. It seems they can indeed they can collect most of their residential claims in 60 days, however they are unlikely to collect their commercial claims in 60 days. In order to balance simplicity and accuracy I would make the following four claims.
+
+\begin{itemize}
+\item Residential claims under \$150 can be collected in 30 days
+\item Residential claims over \$150 can be collected in 60 days
+\item Commercial claims over \$150 can be collected in 75 days
+\item Commercial claims under \$150 can be collected in 100 days
+\end{itemize}
+
+\end{document}
